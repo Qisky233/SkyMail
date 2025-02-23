@@ -1,0 +1,36 @@
+{
+  "name": "easymail",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@capacitor/android": "latest",
+    "@element-plus/icons-vue": "^2.3.1",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "axios": "^1.7.9",
+    "core-js": "^3.40.0",
+    "element-plus": "^2.9.1",
+    "quill": "^2.0.3",
+    "regenerator-runtime": "^0.14.1",
+    "three": "^0.172.0",
+    "vue": "^3.4.21",
+    "vue-router": "^4.5.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "latest",
+    "@capacitor/core": "latest",
+    "autoprefixer": "^10.4.20",
+    "less": "^4.2.1",
+    "postcss": "^8.5.3",
+    "postcss-import": "^16.1.0",
+    "postcss-nested": "^7.0.2",
+    "sass-embedded": "^1.83.4",
+    "vite": "^5.2.0",
+    "vuex": "^4.1.0"
+  }
+}

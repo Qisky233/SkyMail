@@ -1,0 +1,127 @@
+package utils
+
+import (
+	"fmt"
+	"io"
+	"strings"
+
+	"mime"
+
+	"github.com/emersion/go-message/mail"
+)
+
+// EmailHeader 用于存储解析后的邮件头信息
+type EmailHeader struct {
+	ReturnPath  string   `json:"return_path"`
+	DeliveredTo string   `json:"delivered_to"`
+	Received    []string `json:"received"`
+	Date        string   `json:"date"`
+	From        string   `json:"from"`
+	To          string   `json:"to"`
+	Subject     string   `json:"subject"`
+	XPriority   string   `json:"x_priority"`
+	XHasAttach  string   `json:"x_has_attach"`
+	XMailer     string   `json:"x_mailer"`
+	MimeVersion string   `json:"mime_version"`
+	MessageID   string   `json:"message_id"`
+	ContentType string   `json:"content_type"`
+}
+
+// EmailPart 用于存储邮件正文部分的信息
+type EmailPart struct {
+	ContentType             string `json:"content_type"`
+	ContentTransferEncoding string `json:"content_transfer_encoding"`
+	Charset                 string `json:"charset,omitempty"`
+	Body                    string `json:"body"`
+}
+
+// EmailResponse 用于存储最终的邮件解析结果
+type EmailResponse struct {
+	Headers EmailHeader `json:"headers"`
+	Parts   []EmailPart `json:"parts"`
+}
+
+// ParseMailHandler 解析邮件内容并返回 JSON 数据
+func ParseMailHandler(mailContent string) (EmailResponse, error) {
+	// 使用 bytes.Buffer 来处理邮件内容字符串
+	reader := strings.NewReader(mailContent)
+
+	// 创建邮件阅读器
+	msg, err := mail.CreateReader(reader)
+	if err != nil {
+		return EmailResponse{}, fmt.Errorf("failed to create mail reader: %v", err)
+	}
+	defer msg.Close()
+
+	// 解析邮件头
+	headers := parseHeaders(&msg.Header)
+
+	// 解析邮件正文
+	var parts []EmailPart
+	for {
+		p, err := msg.NextPart()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return EmailResponse{}, fmt.Errorf("failed to read next part: %v", err)
+		}
+
+		part := EmailPart{
+			ContentType:             p.Header.Get("Content-Type"),
+			ContentTransferEncoding: p.Header.Get("Content-Transfer-Encoding"),
+		}
+
+		// 解析字符集
+		ct := p.Header.Get("Content-Type")
+		if mediaType, params, err := mime.ParseMediaType(ct); err == nil {
+			if charset, ok := params["charset"]; ok {
+				part.Charset = charset
+			}
+			part.ContentType = mediaType
+		}
+
+		// 读取部分内容
+		partBody, err := io.ReadAll(p.Body)
+		if err != nil {
+			return EmailResponse{}, fmt.Errorf("failed to read part body: %v", err)
+		}
+		part.Body = string(partBody)
+
+		parts = append(parts, part)
+	}
+
+	// 构建响应
+	response := EmailResponse{
+		Headers: headers,
+		Parts:   parts,
+	}
+
+	return response, nil
+}
+
+// parseHeaders 解析邮件头
+func parseHeaders(header *mail.Header) EmailHeader {
+	var received []string
+	for field := header.Fields(); field.Next(); {
+		if strings.EqualFold(field.Key(), "Received") {
+			received = append(received, field.Value())
+		}
+	}
+
+	return EmailHeader{
+		ReturnPath:  header.Get("Return-Path"),
+		DeliveredTo: header.Get("Delivered-To"),
+		Received:    received,
+		Date:        header.Get("Date"),
+		From:        header.Get("From"),
+		To:          header.Get("To"),
+		Subject:     header.Get("Subject"),
+		XPriority:   header.Get("X-Priority"),
+		XHasAttach:  header.Get("X-Has-Attach"),
+		XMailer:     header.Get("X-Mailer"),
+		MimeVersion: header.Get("Mime-Version"),
+		MessageID:   header.Get("Message-ID"),
+		ContentType: header.Get("Content-Type"),
+	}
+}

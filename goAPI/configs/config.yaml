@@ -1,6 +1,0 @@
-server:
-  port: 8080
-
-hmail:
-  admin_user: Administrator
-  admin_pass: '@Inc123456.'
